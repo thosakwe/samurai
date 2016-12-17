@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="This" type="DartTestRunConfigurationType" factoryName="Dart Test" folderName="Expressions" singleton="true">
+    <option name="filePath" value="$PROJECT_DIR$/test/expressions/this_test.dart" />
+    <method />
+  </configuration>
+</component>
