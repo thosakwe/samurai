@@ -59,7 +59,6 @@ class Samurai extends RecursiveVisitor {
   visitVariableDeclaration(VariableDeclaration node) {
     for (var decl in node.declarations) {
       var name = decl.name.value;
-      // Todo: JS null
       var value = decl.init != null ? visitExpression(decl.init) : JsNull.instance();
       printDebug('Setting $name to $value...');
       scope.innermost.create(name).value = value;
