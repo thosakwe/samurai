@@ -13,3 +13,5 @@ Other functionality will be in [separate packages](https://pub.dartlang.org/sear
 * Enhanced Web scraping (perhaps with [Rapier](https://github.com/thosakwe/rapier))
 * Existing JS libraries that cannot be easily ported can be wrapped
 (I'm looking at you, Hammer, and esprima!)
+* Server-side rendering of compiled JS apps
+  * Will require a headless DOM for Samurai
