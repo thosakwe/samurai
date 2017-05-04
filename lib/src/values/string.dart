@@ -6,4 +6,4 @@ final ProtoType JsString = new ProtoType.extend(JsObject, name: 'String',
   ctx.value = args[0].toString();
 });
 
-ProtoTypeInstance string(value) => JsString.instance([value]);
+ProtoTypeInstance wrapString(value) => JsString.instance([value]);

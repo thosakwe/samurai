@@ -6,4 +6,4 @@ final ProtoType JsNumber = new ProtoType.extend(JsObject,
   ctx.value = args[0];
 });
 
-ProtoTypeInstance number(num value) => JsNumber.instance([value]);
+ProtoTypeInstance wrapNumber(num value) => JsNumber.instance([value]);

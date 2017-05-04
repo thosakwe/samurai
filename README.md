@@ -1,7 +1,7 @@
 # samurai
 
 
-[![version 1.0.0](https://img.shields.io/badge/pub-v1.0.0-brightgreen.svg)](https://pub.dartlang.org/packages/samurai)
+[![version 0.0.0](https://img.shields.io/badge/pub-0.0.0-red.svg)](https://pub.dartlang.org/packages/samurai)
 [![build status](https://travis-ci.org/thosakwe/samurai.svg)](https://travis-ci.org/thosakwe/samurai)
 
 JS Interpreter in Dart. No `mirrors` dependency.

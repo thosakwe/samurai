@@ -6,6 +6,7 @@ import 'values/values.dart';
 
 /// A JavaScript interpreter.
 class Samurai extends RecursiveVisitor {
+  // TODO: Call stack
   JsContext _context;
   final bool debug;
 
@@ -21,8 +22,7 @@ class Samurai extends RecursiveVisitor {
   }
 
   void printDebug(msg) {
-    if (debug == true)
-      print(msg);
+    if (debug == true) print(msg);
   }
 
   run(String code,
@@ -45,21 +45,30 @@ class Samurai extends RecursiveVisitor {
 
   @override
   visitProgram(Program node) {
-    node.body.forEach(visitStatement);
+    var result = null;
+
+    for (var stmt in node.body) {
+      result = visitStatement(stmt);
+    }
+
+    return result;
   }
 
   visitStatement(Statement node) {
-    printDebug('Visiting this ${node.runtimeType}');
+    printDebug('Visiting this ${node.runtimeType}: ${node.location}');
 
     if (node is VariableDeclaration)
       return visitVariableDeclaration(node);
+    else if (node is ExpressionStatement)
+      return visitExpression(node.expression);
   }
 
   @override
   visitVariableDeclaration(VariableDeclaration node) {
     for (var decl in node.declarations) {
       var name = decl.name.value;
-      var value = decl.init != null ? visitExpression(decl.init) : JsNull.instance();
+      var value =
+          decl.init != null ? visitExpression(decl.init) : JsNull.instance();
       printDebug('Setting $name to $value...');
       scope.innermost.create(name).value = value;
     }

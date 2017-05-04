@@ -6,4 +6,4 @@ final ProtoType JsBoolean = new ProtoType.extend(JsObject, name: 'Boolean',
   ctx.value = args[0];
 });
 
-ProtoTypeInstance boolean(bool value) => JsBoolean.instance([value]);
+ProtoTypeInstance wrapBoolean(bool value) => JsBoolean.instance([value]);
