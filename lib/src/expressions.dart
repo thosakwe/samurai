@@ -11,10 +11,10 @@ resolveExpression(
 
   if (node is BinaryExpression) {
     _innerBinary() {
-      var left =
-          resolveExpression(printDebug, scope, context, node.left)?.value;
-      var right =
-          resolveExpression(printDebug, scope, context, node.right)?.value;
+      var left = resolveExpression(printDebug, scope, context, node.left)
+          ?.samurai$$value;
+      var right = resolveExpression(printDebug, scope, context, node.right)
+          ?.samurai$$value;
 
       // TODO: handle truthy, etc.
       switch (node.operator) {
@@ -84,6 +84,12 @@ resolveExpression(
     } else
       throw new UnsupportedError(
           'Cannot call $target as though it were a JS function.');
+  }
+
+  if (node is ConditionalExpression) {
+    var cond = resolveExpression(printDebug, scope, context, node.condition);
+    return resolveExpression(printDebug, scope, context,
+        isTruthy(cond) ? node.then : node.otherwise);
   }
 
   if (node is LiteralExpression) {

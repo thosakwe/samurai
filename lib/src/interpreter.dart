@@ -44,6 +44,12 @@ class Samurai extends RecursiveVisitor {
   }
 
   @override
+  visitIf(IfStatement node) {
+    var cond = visitExpression(node.condition);
+    return visitStatement(isTruthy(cond) ? node.then : node.otherwise);
+  }
+
+  @override
   visitProgram(Program node) {
     var result = null;
 
@@ -57,10 +63,11 @@ class Samurai extends RecursiveVisitor {
   visitStatement(Statement node) {
     printDebug('Visiting this ${node.runtimeType}: ${node.location}');
 
-    if (node is VariableDeclaration)
-      return visitVariableDeclaration(node);
-    else if (node is ExpressionStatement)
+    if (node is ExpressionStatement)
       return visitExpression(node.expression);
+    else if (node is IfStatement)
+      return visitIf(node);
+    else if (node is VariableDeclaration) return visitVariableDeclaration(node);
   }
 
   @override

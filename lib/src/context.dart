@@ -18,6 +18,7 @@ class SamuraiDefaultContext extends JsContext {
   ProtoTypeInstance _buildGlobal() {
     return object()
       ..Math = buildMath()
+      ..NaN = JsNaN
       ..samurai = wrapBoolean(true)
       ..decodeURI = wrapFunction('decodeURI', _decodeURI)
       ..decodeURIComponent =

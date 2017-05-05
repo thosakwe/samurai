@@ -30,10 +30,10 @@ String stringifyForJs(x) {
   if (x is ProtoTypeInstance) {
     if (isJsPrimitive(x)) {
       if (x.isInstanceOf(JsNumber)) {
-        var n = x.value as num;
+        var n = x.samurai$$value as num;
         return n == n.toInt() ? n.toInt().toString() : n.toString();
       } else
-        return x.value.toString();
+        return x.samurai$$value.toString();
     } else if (x.isInstanceOf(JsFunction)) {
       if (x.samurai$$nativeFunction != null)
         return 'function ${x.samurai$$nativeName}() { [native code] }';

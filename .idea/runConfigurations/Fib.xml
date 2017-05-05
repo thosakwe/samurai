@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Fib" type="DartCommandLineRunConfigurationType" factoryName="Dart Command Line Application" folderName="Examples" singleton="true">
+    <option name="arguments" value="fib.js" />
+    <option name="filePath" value="$PROJECT_DIR$/bin/samurai.dart" />
+    <option name="workingDirectory" value="$PROJECT_DIR$/example" />
+    <method />
+  </configuration>
+</component>

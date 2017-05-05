@@ -3,7 +3,7 @@ import '../value.dart';
 
 final ProtoType JsBoolean = new ProtoType.extend(JsObject, name: 'Boolean',
     constructor: (ctx, [args, named]) {
-  ctx.value = args[0];
+  ctx.samurai$$value = args[0];
 });
 
 ProtoTypeInstance wrapBoolean(bool value) => JsBoolean.instance([value]);
