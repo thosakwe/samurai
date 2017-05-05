@@ -1,7 +1,12 @@
-function fibonacci(num) {
-    if (num <= 1) return 1;
-    return fibonacci(num - 1) + fibonacci(num - 2);
+function fibNaive(n) {
+    if (n < 2) {
+        return 1;
+    } else {
+        return fibNaive(n - 2) + fibNaive(n - 1);
+    }
 }
 
-var n = fibonacci(13);
-console.log(n);
+var n = 2;
+var result = fibNaive(n);
+console.log()
+console.log('fib(' + n + '): ' + result);

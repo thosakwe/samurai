@@ -1,5 +1,8 @@
+import 'package:name_from_symbol/name_from_symbol.dart';
+import 'package:parsejs/parsejs.dart';
 import 'package:prototype/prototype.dart';
 import 'boolean.dart';
+import 'function.dart';
 import 'null.dart';
 import 'number.dart';
 import 'string.dart';
@@ -14,6 +17,10 @@ bool isJsPrimitive(ProtoTypeInstance x) {
       x.isInstanceOf(JsNull) ||
       x.isInstanceOf(JsNumber) ||
       x.isInstanceOf(JsString);
+}
+
+bool isJsString(x) {
+  return x != null && x is ProtoTypeInstance && x.isInstanceOf(JsString);
 }
 
 bool isTruthy(x) {
@@ -33,4 +40,49 @@ bool isTruthy(x) {
 
     return !obj.isInstanceOf(JsNull);
   }
+}
+
+String stringifyForJs(x) {
+  if (x is ProtoTypeInstance) {
+    if (isJsPrimitive(x)) {
+      if (x.isInstanceOf(JsNumber)) {
+        var n = x.samurai$$value as num;
+        if (n == double.INFINITY)
+          return 'Infinity';
+        else if (n == double.NEGATIVE_INFINITY)
+          return '-Infinity';
+        else if (n == double.NAN || n.isNaN) return 'NaN';
+        return n == n.toInt() ? n.toInt().toString() : n.toString();
+      } else
+        return x.samurai$$value.toString();
+    } else if (x.isInstanceOf(JsFunction)) {
+      if (x.samurai$$functionNode is FunctionNode) {
+        var func = x.samurai$$functionNode as FunctionNode;
+        var buf = new StringBuffer('function');
+
+        if (x.samurai$$nativeName?.isNotEmpty == true)
+          buf.write(' ${x.samurai$$nativeName} ');
+
+        buf.write('(');
+
+        for (int i = 0; i < func.params.length; i++) {
+          if (i > 0) buf.write(', ');
+          buf.write(func.params[i].value);
+        }
+
+        buf.write(') {}');
+        return buf.toString();
+      } else if (x.samurai$$nativeFunction != null)
+        return 'function ${x.samurai$$nativeName}() { [native code] }';
+      else
+        return 'TODO: STRINGIFY FUNCTIONS';
+      // TODO: Stringify Functions
+    } else {
+      var map = x.members.keys.fold<Map<String, String>>({}, (out, k) {
+        return out..[nameFromSymbol(k)] = stringifyForJs(x.members[k]);
+      });
+      return 'Object: $map';
+    }
+  } else
+    return x == null ? 'undefined' : x.toString();
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:mirrors';
+import 'package:parsejs/parsejs.dart';
 import 'package:prototype/prototype.dart';
 import 'samurai.dart';
 
@@ -24,28 +25,4 @@ ProtoTypeInstance _buildConsole() {
   });
 
   return JsConsole.instance();
-}
-
-String stringifyForJs(x) {
-  if (x is ProtoTypeInstance) {
-    if (isJsPrimitive(x)) {
-      if (x.isInstanceOf(JsNumber)) {
-        var n = x.samurai$$value as num;
-        return n == n.toInt() ? n.toInt().toString() : n.toString();
-      } else
-        return x.samurai$$value.toString();
-    } else if (x.isInstanceOf(JsFunction)) {
-      if (x.samurai$$nativeFunction != null)
-        return 'function ${x.samurai$$nativeName}() { [native code] }';
-      else
-        return 'TODO: STRINGIFY FUNCTIONS';
-      // TODO: Stringify Functions
-    } else {
-      var map = x.members.keys.fold<Map<String, String>>({}, (out, k) {
-        return out..[MirrorSystem.getName(k)] = stringifyForJs(x.members[k]);
-      });
-      return 'Object: $map';
-    }
-  } else
-    return x == null ? 'undefined' : x.toString();
 }

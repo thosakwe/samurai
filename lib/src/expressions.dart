@@ -2,32 +2,80 @@ import 'package:parsejs/parsejs.dart';
 import 'package:prototype/prototype.dart';
 import 'values/values.dart';
 import 'context.dart';
+import 'interpreter.dart'; // Circular...
 import 'scope.dart';
 import 'value.dart';
 
-resolveExpression(
-    Function printDebug, JsScope scope, JsContext context, Expression node) {
+bool _isNotNaN(x) => x is! double || !x.isNaN;
+
+num numerify(x) {
+  if (x == null || x is! ProtoTypeInstance)
+    return null;
+  else {
+    var obj = x as ProtoTypeInstance;
+
+    if (obj.isInstanceOf(JsNull))
+      return 0;
+    else if (obj.isInstanceOf(JsNumber)) {
+      return obj.samurai$$value;
+    } else if (obj.isInstanceOf(JsString)) {
+      try {
+        return num.parse(obj.samurai$$value);
+      } catch (e) {
+        return double.NAN;
+      }
+    } else {
+      return double.NAN;
+    }
+  }
+}
+
+resolveExpression(Function printDebug, JsScope scope, JsContext context,
+    Expression node, Samurai samurai) {
   printDebug('Resolving this ${node.runtimeType}');
 
   if (node is BinaryExpression) {
     _innerBinary() {
-      var left = resolveExpression(printDebug, scope, context, node.left)
-          ?.samurai$$value;
-      var right = resolveExpression(printDebug, scope, context, node.right)
-          ?.samurai$$value;
+      var left = samurai.visitExpression(node.left);
+      var right = samurai.visitExpression(node.right);
+
+      // Numeric
+      if (['%', '*', '/', '+', '-', '<', '<=', '>', '>=']
+          .contains(node.operator)) {
+        var l = numerify(left), r = numerify(right);
+        if (l == null || r == null) return JsNaN;
+
+        if (_isNotNaN(l) && _isNotNaN(r)) {
+          switch (node.operator) {
+            case '%':
+              return l % r;
+            case '*':
+              return l * r;
+            case '/':
+              return l / r;
+            case '+':
+              return l + r;
+            case '-':
+              return l - r;
+            case '<':
+              return wrapBoolean(l < r);
+            case '<=':
+              return wrapBoolean(l <= r);
+            case '>':
+              return wrapBoolean(l > r);
+            case '>=':
+              return wrapBoolean(l >= r);
+          }
+        } else if (node.operator == '+' &&
+            (isJsString(left) || isJsString(right))) {
+          var l = stringifyForJs(left), r = stringifyForJs(right);
+          return wrapString(l + r);
+        } else
+          return double.NAN;
+      }
 
       // TODO: handle truthy, etc.
       switch (node.operator) {
-        case '%':
-          return left % right;
-        case '*':
-          return left * right;
-        case '/':
-          return left / right;
-        case '+':
-          return left + right;
-        case '-':
-          return left - right;
         case '<<':
           return left << right;
         case '>>':
@@ -41,9 +89,12 @@ resolveExpression(
         case '!=':
           return left != right;
         case '&&':
-          return left && right;
+          return wrapBoolean(isTruthy(left) && isTruthy(right));
         case '||':
-          return left || right;
+          return wrapBoolean(isTruthy(left) || isTruthy(right));
+        default:
+          throw new UnsupportedError(
+              'TODO: Binary operator "${node.operator}"');
       }
     }
 
@@ -59,10 +110,8 @@ resolveExpression(
   }
 
   if (node is CallExpression) {
-    var target = resolveExpression(printDebug, scope, context, node.callee);
-    var args = node.arguments
-        .map((expr) => resolveExpression(printDebug, scope, context, expr))
-        .toList();
+    var target = samurai.visitExpression(node.callee);
+    var args = node.arguments.map(samurai.visitExpression).toList();
 
     if (target is ProtoTypeInstance) {
       if (target.isInstanceOf(JsFunction)) {
@@ -87,9 +136,8 @@ resolveExpression(
   }
 
   if (node is ConditionalExpression) {
-    var cond = resolveExpression(printDebug, scope, context, node.condition);
-    return resolveExpression(printDebug, scope, context,
-        isTruthy(cond) ? node.then : node.otherwise);
+    var cond = samurai.visitExpression(node.condition);
+    return samurai.visitExpression(isTruthy(cond) ? node.then : node.otherwise);
   }
 
   if (node is LiteralExpression) {
@@ -97,7 +145,7 @@ resolveExpression(
   }
 
   if (node is MemberExpression) {
-    var object = resolveExpression(printDebug, scope, context, node.object);
+    var object = samurai.visitExpression(node.object);
 
     if (object == null)
       throw new _TypeErrorImpl(
@@ -121,7 +169,20 @@ resolveExpression(
     }
   }
 
-  if (node is Expression) if (node is ThisExpression) {
+  if (node is ObjectExpression) {
+    var obj = JsObject.instance();
+
+    for (var prop in node.properties)
+      obj[new Symbol(prop.nameString)] =
+          samurai.visitExpression(prop.expression);
+
+    return obj;
+  }
+
+  if (node is SequenceExpression)
+    return node.expressions.map(samurai.visitExpression).last;
+
+  if (node is ThisExpression) {
     return scope.innermostThis;
   }
 }
