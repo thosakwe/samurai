@@ -27,7 +27,7 @@ bool isTruthy(x) {
     if (obj.isInstanceOf(JsBoolean))
       return obj.samurai$$value == true;
     else if (obj.isInstanceOf(JsNumber))
-      return obj.samurai$$value == 0 || obj.samurai$$value == double.NAN;
+      return obj.samurai$$value != 0 && obj.samurai$$value != double.NAN;
     else if (obj.isInstanceOf(JsString))
       return obj.samurai$$value?.isNotEmpty == true;
 
