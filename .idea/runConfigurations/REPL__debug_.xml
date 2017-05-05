@@ -1,8 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="REPL (debug)" type="DartCommandLineRunConfigurationType" factoryName="Dart Command Line Application" singleton="true">
-    <option name="arguments" value="--repl --verbose" />
-    <option name="filePath" value="$PROJECT_DIR$/bin/samurai.dart" />
-    <option name="workingDirectory" value="$PROJECT_DIR$" />
-    <method />
-  </configuration>
-</component>

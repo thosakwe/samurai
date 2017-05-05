@@ -1,8 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Hello" type="DartCommandLineRunConfigurationType" factoryName="Dart Command Line Application" folderName="Examples" singleton="true">
-    <option name="arguments" value="hello.js" />
-    <option name="filePath" value="$PROJECT_DIR$/bin/samurai.dart" />
-    <option name="workingDirectory" value="$PROJECT_DIR$/example" />
-    <method />
-  </configuration>
-</component>
