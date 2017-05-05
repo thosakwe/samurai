@@ -21,6 +21,6 @@ main() {
 
     var b = samurai.scope['b'];
     expect(b.isInstanceOf(JsNumber), isTrue);
-    expect(b.value, equals(3));
+    expect(b.samurai$$value, equals(3));
   });
 }

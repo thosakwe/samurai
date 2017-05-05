@@ -10,7 +10,7 @@ main() {
 
     var x = samurai.scope['x'];
     expect(x.isInstanceOf(JsBoolean), isTrue);
-    expect(x.value, isTrue);
+    expect(x.samurai$$value, isTrue);
   });
 
   test('this', () {
@@ -21,6 +21,6 @@ main() {
 
     var x = samurai.scope['x'];
     expect(x.isInstanceOf(JsBoolean), isTrue);
-    expect(x.value, isTrue);
+    expect(x.samurai$$value, isTrue);
   });
 }

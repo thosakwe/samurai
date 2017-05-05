@@ -10,7 +10,7 @@ main() {
 
       expect(x.isInstanceOf(JsBoolean), isTrue);
       expect(x.isInstanceOf(JsObject), isTrue);
-      expect(x.value, isTrue);
+      expect(x.samurai$$value, isTrue);
     });
 
     test('false', () {
@@ -20,7 +20,7 @@ main() {
 
       expect(x.isInstanceOf(JsBoolean), isTrue);
       expect(x.isInstanceOf(JsObject), isTrue);
-      expect(x.value, isFalse);
+      expect(x.samurai$$value, isFalse);
     });
   });
 }

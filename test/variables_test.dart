@@ -9,7 +9,7 @@ main() {
     var one = samurai.scope['one'];
     expect(one.isInstanceOf(JsNumber), isTrue);
     expect(one.isInstanceOf(JsObject), isTrue);
-    expect(one.value, equals(1));
+    expect(one.samurai$$value, 1);
   });
 
   test('declare without value', () {
