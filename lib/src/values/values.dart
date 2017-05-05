@@ -42,6 +42,32 @@ bool isTruthy(x) {
   }
 }
 
+num numerifyForJs(x) {
+  if (x == null || x is! ProtoTypeInstance)
+    return null;
+  else {
+    var obj = x as ProtoTypeInstance;
+    if (obj.isInstanceOf(JsNull))
+      return 0;
+    else if (obj.isInstanceOf(JsNumber) && obj.samurai$$value != null) {
+      return obj.samurai$$value;
+    } else if (obj.isInstanceOf(JsString)) {
+      var value = obj.samurai$$value as String;
+      if (value?.isEmpty == true) return 0;
+
+      try {
+        return num.parse(obj.samurai$$value);
+      } catch (e) {
+        return double.NAN;
+      }
+    } else if (obj.isInstanceOf(JsBoolean)) {
+      return obj.samurai$$value == true ? 1 : 0;
+    } else {
+      return double.NAN;
+    }
+  }
+}
+
 String stringifyForJs(x) {
   if (x is ProtoTypeInstance) {
     if (isJsPrimitive(x)) {

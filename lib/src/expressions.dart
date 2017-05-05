@@ -8,28 +8,6 @@ import 'value.dart';
 
 bool _isNotNaN(x) => x is! double || !x.isNaN;
 
-num numerify(x) {
-  if (x == null || x is! ProtoTypeInstance)
-    return null;
-  else {
-    var obj = x as ProtoTypeInstance;
-
-    if (obj.isInstanceOf(JsNull))
-      return 0;
-    else if (obj.isInstanceOf(JsNumber)) {
-      return obj.samurai$$value;
-    } else if (obj.isInstanceOf(JsString)) {
-      try {
-        return num.parse(obj.samurai$$value);
-      } catch (e) {
-        return double.NAN;
-      }
-    } else {
-      return double.NAN;
-    }
-  }
-}
-
 resolveExpression(Function printDebug, JsScope scope, JsContext context,
     Expression node, Samurai samurai) {
   printDebug('Resolving this ${node.runtimeType}');
@@ -42,7 +20,7 @@ resolveExpression(Function printDebug, JsScope scope, JsContext context,
       // Numeric
       if (['%', '*', '/', '+', '-', '<', '<=', '>', '>=']
           .contains(node.operator)) {
-        var l = numerify(left), r = numerify(right);
+        var l = numerifyForJs(left), r = numerifyForJs(right);
         if (l == null || r == null) return JsNaN;
 
         if (_isNotNaN(l) && _isNotNaN(r)) {

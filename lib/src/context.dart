@@ -34,41 +34,41 @@ class SamuraiDefaultContext extends JsContext {
     if (args.isEmpty) {
       // TODO: throw exception
     } else
-      return Uri.decodeFull(args.first.toString());
+      return Uri.decodeFull(stringifyForJs(args.first));
   }
 
   _decodeURIComponent(ctx, [List args, named]) {
     if (args.isEmpty) {
       // TODO: throw exception
     } else
-      return Uri.decodeComponent(args.first.toString());
+      return Uri.decodeComponent(stringifyForJs(args.first));
   }
 
   _encodeURI(ctx, [List args, named]) {
     if (args.isEmpty) {
       // TODO: throw exception
     } else
-      return Uri.encodeFull(args.first.toString());
+      return Uri.encodeFull(stringifyForJs(args.first));
   }
 
   _encodeURIComponent(ctx, [List args, named]) {
     if (args.isEmpty) {
       // TODO: throw exception
     } else
-      return Uri.encodeComponent(args.first.toString());
+      return Uri.encodeComponent(stringifyForJs(args.first));
   }
 
   _parseInt(ctx, [List args, named]) {
     if (args.isEmpty) {
       // TODO: throw exception
     } else
-      return int.parse(args.first.toString());
+      return int.parse(stringifyForJs(args.first));
   }
 
   _parseFloat(ctx, [List args, named]) {
     if (args.isEmpty) {
       // TODO: throw exception
     } else
-      return double.parse(args.first.toString());
+      return double.parse(stringifyForJs(args.first));
   }
 }

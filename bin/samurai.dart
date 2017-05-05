@@ -2,7 +2,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:args/args.dart';
-import 'package:charcode/charcode.dart';
 import 'package:samurai/io.dart';
 import 'package:samurai/samurai.dart';
 import 'package:samurai/src/pubspec.update.g.dart';
@@ -29,12 +28,8 @@ main(List<String> args) async {
     else if (results['version'])
       print('v${PACKAGE_VERSION}');
     else if (results['repl']) {
-      final List<String> lines = [];
-      final stack = <int>[];
-      int index = 0;
-
       var samurai = new Samurai(
-          context: applyIo(new SamuraiDefaultContext()),
+          context: createJsContext(polyfills: [SAMURAI_IO]),
           debug: results['verbose']);
       stdout.write('> ');
       stdin.transform(UTF8.decoder).listen((str) {
@@ -54,7 +49,7 @@ main(List<String> args) async {
       var file = new File(results.rest.first);
       var contents = await file.readAsString();
       var samurai = new Samurai(
-          context: applyIo(new SamuraiDefaultContext()),
+          context: createJsContext(polyfills: [SAMURAI_IO]),
           debug: results['verbose']);
       samurai.run(contents, filename: file.path);
     }
