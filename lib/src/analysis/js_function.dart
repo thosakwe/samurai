@@ -8,8 +8,13 @@ abstract class JsFunction extends JsValue {
   final String name;
   final JsValue context;
 
-  JsFunction({this.name, this.context}) {
-    prototype.properties['call'] = new JsProperty.readOnly('call',
+  JsFunction({this.name, this.context}):super(JsTypeOf.function) {
+    prototype.properties['bind'] = new JsProperty.normal('bind',
+        new JsFunction.anonymous((context, arguments) {
+      return bind(arguments[0]);
+    }));
+
+    prototype.properties['call'] = new JsProperty.normal('call',
         new JsFunction.anonymous((context, arguments) {
       // First arg is `this`, second is arguments
       return apply(arguments[0], arguments.skip(1).toList());
@@ -20,9 +25,6 @@ abstract class JsFunction extends JsValue {
       JsValue Function(JsValue context, JsArgumentList arguments) f,
       {String name,
       JsValue context}) = _AnonymousJsFunction;
-
-  @override
-  String get typeof => JsTypeOf.function;
 
   JsFunction bind(JsValue context) => new _BoundJsFunction(this, context);
 

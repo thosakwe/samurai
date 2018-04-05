@@ -19,7 +19,7 @@ class JsProperty {
     var p = new JsProperty.normal(name);
 
     p._getter = new JsFunction.anonymous(
-          (context, arguments) {
+      (context, arguments) {
         return value;
       },
       name: 'get $name',
@@ -32,7 +32,7 @@ class JsProperty {
     var p = new JsProperty.normal(name);
 
     p._setter = new JsFunction.anonymous(
-          (context, arguments) {
+      (context, arguments) {
         return value;
       },
       name: 'set $name',
@@ -41,8 +41,8 @@ class JsProperty {
     return p;
   }
 
-  factory JsProperty.normal(String name) {
-    var p = new JsProperty._();
+  factory JsProperty.normal(String name, [JsValue value]) {
+    var p = new JsProperty._().._value = value;
     p._getter = new JsFunction.anonymous(
       (context, arguments) {
         return p._value;

@@ -1,12 +1,19 @@
+import 'js_function.dart';
 import 'js_property.dart';
 
 abstract class JsValue {
-  final Map<String, JsProperty> properties = {};
-  static _JsUndefined _undefined;
-
   static get undefined => _undefined ??= new _JsUndefined();
+  static _JsUndefined _undefined;
+  final Map<String, JsProperty> properties = {};
 
-  String get typeof;
+  final String typeof;
+
+  JsValue(this.typeof) {
+    properties['toString'] = new JsProperty.normal('toString',
+        new JsFunction.anonymous((context, arguments) {
+      // TODO: JS String
+    }));
+  }
 }
 
 abstract class JsTypeOf {
@@ -18,8 +25,7 @@ abstract class JsTypeOf {
 }
 
 class _JsUndefined extends JsValue {
-  @override
-  String get typeof => JsTypeOf.undefined;
+  _JsUndefined() : super(JsTypeOf.undefined);
 
   @override
   String toString() {
