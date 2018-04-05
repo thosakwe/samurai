@@ -4,6 +4,7 @@ import 'js_property.dart';
 import 'js_value.dart';
 
 abstract class JsFunction extends JsValue {
+  final List<JsParameter> parameters = [];
   final JsObject prototype = new JsObject();
   final String name;
   final JsValue context;
@@ -35,6 +36,23 @@ abstract class JsFunction extends JsValue {
     var obj = JsObject.assign(new JsObject(), prototype);
     apply(obj, arguments);
     return obj;
+  }
+
+  @override
+  String toString() {
+    var b = new StringBuffer('f');
+    if (name != null)
+      b.write(' $name');
+    b.write('(');
+
+    for (int i = 0; i < parameters.length; i++) {
+      if (i > 0)
+        b.write(', ');
+      b.write(parameters[i].name);
+    }
+
+    b.write(') { [native code] }');
+    return b.toString();
   }
 }
 
@@ -74,4 +92,10 @@ class JsArgumentList extends DelegatingList<JsValue> {
       return JsValue.undefined;
     }
   }
+}
+
+class JsParameter {
+  final String name;
+
+  JsParameter(this.name);
 }
