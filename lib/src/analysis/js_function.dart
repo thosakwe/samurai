@@ -4,12 +4,21 @@ import 'js_property.dart';
 import 'js_value.dart';
 
 abstract class JsFunction extends JsValue {
-  final List<JsParameter> parameters = [];
   final JsObject prototype = new JsObject();
+  final List<JsParameter> parameters = [];
   final String name;
   final JsValue context;
 
-  JsFunction({this.name, this.context}):super(JsTypeOf.function) {
+  JsFunction({this.name, this.context}) : super(JsTypeOf.function);
+
+  factory JsFunction.anonymous(
+      JsValue Function(JsValue context, JsArgumentList arguments) f,
+      {String name,
+      JsValue context}) = _AnonymousJsFunction;
+
+  @override
+  Map<String, JsProperty> createProperties() {
+    var properties = super.createProperties();
     // TODO: Function.prototype
     properties['bind'] = new JsProperty.normal('bind',
         new JsFunction.anonymous((context, arguments) {
@@ -21,12 +30,8 @@ abstract class JsFunction extends JsValue {
       // First arg is `this`, second is arguments
       return apply(arguments[0], arguments.skip(1).toList());
     }));
+    return properties;
   }
-
-  factory JsFunction.anonymous(
-      JsValue Function(JsValue context, JsArgumentList arguments) f,
-      {String name,
-      JsValue context}) = _AnonymousJsFunction;
 
   JsFunction bind(JsValue context) => new _BoundJsFunction(this, context);
 
@@ -41,13 +46,11 @@ abstract class JsFunction extends JsValue {
   @override
   String toString() {
     var b = new StringBuffer('f');
-    if (name != null)
-      b.write(' $name');
+    if (name != null) b.write(' $name');
     b.write('(');
 
     for (int i = 0; i < parameters.length; i++) {
-      if (i > 0)
-        b.write(', ');
+      if (i > 0) b.write(', ');
       b.write(parameters[i].name);
     }
 
