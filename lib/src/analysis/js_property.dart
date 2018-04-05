@@ -15,6 +15,32 @@ class JsProperty {
 
   JsFunction get setter => _setter;
 
+  factory JsProperty.readOnly(String name, JsValue value) {
+    var p = new JsProperty.normal(name);
+
+    p._getter = new JsFunction.anonymous(
+          (context, arguments) {
+        return value;
+      },
+      name: 'get $name',
+    );
+
+    return p;
+  }
+
+  factory JsProperty.writeOnly(String name, JsValue value) {
+    var p = new JsProperty.normal(name);
+
+    p._setter = new JsFunction.anonymous(
+          (context, arguments) {
+        return value;
+      },
+      name: 'set $name',
+    );
+
+    return p;
+  }
+
   factory JsProperty.normal(String name) {
     var p = new JsProperty._();
     p._getter = new JsFunction.anonymous(

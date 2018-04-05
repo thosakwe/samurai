@@ -1,4 +1,5 @@
 import 'js_object.dart';
+import 'js_property.dart';
 import 'js_value.dart';
 
 abstract class JsFunction extends JsValue {
@@ -6,7 +7,12 @@ abstract class JsFunction extends JsValue {
   final String name;
   final JsValue context;
 
-  JsFunction({this.name, this.context});
+  JsFunction({this.name, this.context}) {
+    prototype.properties['call'] = new JsProperty.readOnly('call', new JsFunction.anonymous((context, arguments) {
+      // First arg is `this`, second is arguments
+      return apply(arguments[0], arguments.skip(1).toList());
+    }));
+  }
 
   factory JsFunction.anonymous(
       JsValue Function(JsValue context, List<JsValue> arguments) f,
