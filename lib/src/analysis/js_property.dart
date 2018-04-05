@@ -59,4 +59,8 @@ class JsProperty {
 
     return p;
   }
+
+  JsProperty clone() {
+
+  }
 }

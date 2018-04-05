@@ -29,6 +29,10 @@ abstract class JsFunction extends JsValue {
   JsFunction bind(JsValue context) => new _BoundJsFunction(this, context);
 
   JsValue apply(JsValue context, JsArgumentList arguments);
+
+  JsObject newInstance(JsArgumentList arguments) {
+
+  }
 }
 
 class _AnonymousJsFunction extends JsFunction {
