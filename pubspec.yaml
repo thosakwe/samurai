@@ -6,6 +6,7 @@ environment:
 homepage: https://github.com/thosakwe/samurai.git
 version: 0.0.0
 dependencies:
+  code_buffer: ^1.0.0
   parsejs: ^1.1.0
   symbol_table: ^1.0.0
 dev_dependencies:

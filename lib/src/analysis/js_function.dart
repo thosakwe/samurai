@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'package:collection/collection.dart';
 import 'js_object.dart';
 import 'js_property.dart';
@@ -17,8 +18,8 @@ abstract class JsFunction extends JsValue {
       JsValue context}) = _AnonymousJsFunction;
 
   @override
-  Map<String, JsProperty> createProperties() {
-    var properties = super.createProperties();
+  SplayTreeMap<String, JsProperty> createProperties() {
+    var properties = {};
     // TODO: Function.prototype
     properties['bind'] = new JsProperty.normal('bind',
         new JsFunction.anonymous((context, arguments) {
@@ -30,7 +31,8 @@ abstract class JsFunction extends JsValue {
       // First arg is `this`, second is arguments
       return apply(arguments[0], arguments.skip(1).toList());
     }));
-    return properties;
+
+    return new SplayTreeMap.from(properties)..addAll(super.createProperties());
   }
 
   JsFunction bind(JsValue context) => new _BoundJsFunction(this, context);
@@ -45,7 +47,13 @@ abstract class JsFunction extends JsValue {
 
   @override
   String toString() {
-    var b = new StringBuffer('f');
+    var b = new StringBuffer();
+    if (name?.startsWith('get ') == true)
+      b.write('get');
+    else if (name?.startsWith('set ') == true)
+      b.write('set');
+    else
+      b.write('f');
     if (name != null) b.write(' $name');
     b.write('(');
 
