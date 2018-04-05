@@ -9,12 +9,13 @@ abstract class JsFunction extends JsValue {
   final JsValue context;
 
   JsFunction({this.name, this.context}):super(JsTypeOf.function) {
-    prototype.properties['bind'] = new JsProperty.normal('bind',
+    // TODO: Function.prototype
+    properties['bind'] = new JsProperty.normal('bind',
         new JsFunction.anonymous((context, arguments) {
       return bind(arguments[0]);
     }));
 
-    prototype.properties['call'] = new JsProperty.normal('call',
+    properties['call'] = new JsProperty.normal('call',
         new JsFunction.anonymous((context, arguments) {
       // First arg is `this`, second is arguments
       return apply(arguments[0], arguments.skip(1).toList());
@@ -31,7 +32,9 @@ abstract class JsFunction extends JsValue {
   JsValue apply(JsValue context, JsArgumentList arguments);
 
   JsObject newInstance(JsArgumentList arguments) {
-
+    var obj = JsObject.assign(new JsObject(), prototype);
+    apply(obj, arguments);
+    return obj;
   }
 }
 
