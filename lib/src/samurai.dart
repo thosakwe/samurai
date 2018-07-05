@@ -95,6 +95,10 @@ class Samurai {
 
   JsObject visitExpression(Expression node, SymbolTable<JsObject> scope) {
     if (node is NameExpression) {
+      if (node.name.value == 'undefined') {
+        return null;
+      }
+
       var ref = scope.resolve(node.name.value)?.value ??
           scope.context.properties[node.name.value];
 
