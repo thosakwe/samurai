@@ -16,6 +16,80 @@ class Samurai {
   final JsObject global = new JsObject();
 
   Samurai() {
+    var decodeUriFunction = new JsFunction(global, (samurai, arguments, __) {
+      try {
+        return new JsString(
+            Uri.decodeFull(arguments.getProperty(0.0)?.toString()));
+      } catch (_) {
+        return arguments.getProperty(0.0);
+      }
+    });
+
+    var decodeUriComponentFunction =
+        new JsFunction(global, (samurai, arguments, __) {
+      try {
+        return new JsString(
+            Uri.decodeComponent(arguments.getProperty(0.0)?.toString()));
+      } catch (_) {
+        return arguments.getProperty(0.0);
+      }
+    });
+    var encodeUriFunction = new JsFunction(global, (samurai, arguments, __) {
+      try {
+        return new JsString(
+            Uri.encodeFull(arguments.getProperty(0.0)?.toString()));
+      } catch (_) {
+        return arguments.getProperty(0.0);
+      }
+    });
+
+    var encodeUriComponentFunction =
+        new JsFunction(global, (samurai, arguments, __) {
+      try {
+        return new JsString(
+            Uri.encodeComponent(arguments.getProperty(0.0)?.toString()));
+      } catch (_) {
+        return arguments.getProperty(0.0);
+      }
+    });
+
+    var evalFunction = new JsFunction(global, (_, arguments, __) {
+      var src = arguments.getProperty(0.0)?.toString();
+      if (src == null || src.trim().isEmpty) return null;
+
+      try {
+        var program = parsejs(src, filename: 'eval');
+        return visitProgram(program, 'eval');
+      } on ParseError catch (e) {
+        throw callStack.error('Syntax', e.message);
+      }
+    });
+
+    var isFinite = new JsFunction(global, (_, arguments, __) {
+      return new JsBoolean(coerceToNumber(arguments.getProperty(0.0)).isFinite);
+    });
+
+    var isNaN = new JsFunction(global, (_, arguments, __) {
+      return new JsBoolean(coerceToNumber(arguments.getProperty(0.0)).isNaN);
+    });
+
+    var parseFloatFunction = new JsFunction(global, (_, arguments, __) {
+      var str = arguments.getProperty(0.0)?.toString();
+      var v = str == null ? null : double.tryParse(str);
+      return v == null ? null : new JsNumber(v);
+    });
+
+    var parseIntFunction = new JsFunction(global, (_, arguments, __) {
+      var str = arguments.getProperty(0.0)?.toString();
+      var baseArg = arguments.getProperty(1.0);
+      var base = baseArg == null ? 10 : int.tryParse(baseArg.toString());
+      if (base == null) return new JsNumber(double.nan);
+      var v = str == null
+          ? null
+          : int.tryParse(str.replaceAll(new RegExp(r'^0x'), ''), radix: base);
+      return v == null ? new JsNumber(double.nan) : new JsNumber(v);
+    });
+
     var printFunction = new JsFunction(
       global,
       (samurai, arguments, scope) {
@@ -23,23 +97,37 @@ class Samurai {
       },
     );
 
-    global.properties['print'] = printFunction
-      ..properties['name'] = new JsString('print');
+    global.properties.addAll({
+      'decodeURI': decodeUriFunction..name = 'decodeURI',
+      'decodeURIComponent': decodeUriComponentFunction
+        ..name = 'decodeURIComponent',
+      'encodeURI': encodeUriFunction..name = 'encodeURI',
+      'encodeURIComponent': encodeUriComponentFunction
+        ..name = 'encodeURIComponent',
+      'eval': evalFunction..name = 'eval',
+      'Infinity': new JsNumber(double.infinity),
+      'isFinite': isFinite..name = 'isFinite',
+      'isNaN': isNaN..name = 'isNaN',
+      'NaN': new JsNumber(double.nan),
+      'parseFloat': parseFloatFunction..name = 'parseFloat',
+      'parseInt': parseIntFunction..name = 'parseInt',
+      'print': printFunction..properties['name'] = new JsString('print'),
+    });
 
     scope
       ..context = global
       ..create('global', value: global);
   }
 
-  JsObject visitProgram(Program node) {
-    callStack.push(node.filename, node.line, '<entry>');
+  JsObject visitProgram(Program node, [String stackName = '<entry>']) {
+    callStack.push(node.filename, node.line, stackName);
 
     // TODO: Hoist functions, declarations into global scope.
     JsObject out;
 
     for (var stmt in node.body) {
-      callStack.push(stmt.filename, stmt.line, '<entry>');
-      var result = visitStatement(stmt, scope, '<entry>');
+      callStack.push(stmt.filename, stmt.line, stackName);
+      var result = visitStatement(stmt, scope, stackName);
 
       if (stmt is ExpressionStatement) {
         out = result;
@@ -83,8 +171,7 @@ class Samurai {
         var value = visitExpression(decl.init, scope);
 
         try {
-          symbol = scope.create(
-              decl.name.value, value: value);
+          symbol = scope.create(decl.name.value, value: value);
         } on StateError {
           symbol = scope.assign(decl.name.value, value);
         }
@@ -154,7 +241,7 @@ class Samurai {
 
     if (node is ConditionalExpression) {
       var condition = visitExpression(node.condition, scope);
-      return condition.isTruthy
+      return (condition?.isTruthy == true)
           ? visitExpression(node.then, scope)
           : visitExpression(node.otherwise, scope);
     }
@@ -286,9 +373,9 @@ class Samurai {
       // TODO: Override operator
       return new JsBoolean(left == right);
     } else if (op == '&&') {
-      return !left.isTruthy ? left : right;
+      return (left?.isTruthy != true) ? left : right;
     } else if (op == '||') {
-      return left.isTruthy ? left : right;
+      return (left?.isTruthy == true) ? left : right;
     } else if (op == '<') {
       return safeBooleanOperation(left, right, (l, r) => l < r);
     } else if (op == '<=') {

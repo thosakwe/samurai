@@ -25,9 +25,8 @@ main(List<String> args) async {
         handleResult(result);
       } on ParseError catch (e) {
         print(red.wrap('SyntaxError: ${e.message}'));
-      } catch (e, st) {
+      } catch (e) {
         print(red.wrap(e.toString()));
-        print(red.wrap(st.toString()));
       } finally {
         samurai.callStack.clear();
       }
@@ -51,8 +50,10 @@ void handleResult(JsObject obj) {
   } else if (result is bool) {
     print(yellow.wrap(result.toString()));
   } else if (result is num) {
-    if (result is num && result.isNaN) {
+    if (result.isNaN) {
       print(yellow.wrap('NaN'));
+    } else if (result.isInfinite) {
+      print(yellow.wrap(result.isNegative ? '-Infinity' : 'Infinity'));
     } else {
       var value = result == result.toInt() ? result.toInt() : result;
       print(yellow.wrap(value.toString()));

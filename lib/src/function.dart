@@ -31,6 +31,8 @@ class JsFunction extends JsObject {
     }
   }
 
+  void set name(String value) => properties['name'] = new JsString(value);
+
   @override
   String toString() {
     return isAnonymous ? '[Function]' : '[Function: $name]';

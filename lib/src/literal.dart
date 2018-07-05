@@ -43,9 +43,17 @@ class JsNumber extends JsObject {
   bool get isTruthy => valueOf != 0;
 
   @override
-  String toString() => (valueOf == valueOf.toInt())
-      ? valueOf.toInt().toString()
-      : valueOf.toString();
+  String toString() {
+    if (valueOf.isNaN) {
+      return 'NaN';
+    } else if (valueOf.isInfinite) {
+      return valueOf.isNegative ? '-Infinity' : 'Infinity';
+    } else {
+      return (valueOf == valueOf.toInt())
+          ? valueOf.toInt().toString()
+          : valueOf.toString();
+    }
+  }
 }
 
 class JsNull extends JsObject {
