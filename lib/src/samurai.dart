@@ -6,10 +6,12 @@ import 'arguments.dart';
 import 'function.dart';
 import 'literal.dart';
 import 'object.dart';
+import 'stack.dart';
 import 'util.dart';
 
 class Samurai {
   final List<Completer> awaiting = <Completer>[];
+  final CallStack callStack = new CallStack();
   final SymbolTable<JsObject> scope = new SymbolTable();
   final JsObject global = new JsObject();
 
@@ -30,21 +32,28 @@ class Samurai {
   }
 
   JsObject visitProgram(Program node) {
+    callStack.push(node.filename, node.line, '<entry>');
+
     // TODO: Hoist functions, declarations into global scope.
     JsObject out;
 
     for (var stmt in node.body) {
-      var result = visitStatement(stmt, scope);
+      callStack.push(stmt.filename, stmt.line, '<entry>');
+      var result = visitStatement(stmt, scope, '<entry>');
 
       if (stmt is ExpressionStatement) {
         out = result;
       }
+
+      callStack.pop();
     }
 
+    callStack.pop();
     return out;
   }
 
-  JsObject visitStatement(Statement node, SymbolTable<JsObject> scope) {
+  JsObject visitStatement(
+      Statement node, SymbolTable<JsObject> scope, String stackName) {
     if (node is ExpressionStatement) {
       return visitExpression(node.expression, scope);
     }
@@ -55,13 +64,16 @@ class Samurai {
 
     if (node is BlockStatement) {
       for (var stmt in node.body) {
-        var result = visitStatement(stmt, scope.createChild());
+        callStack.push(stmt.filename, stmt.line, stackName);
+        var result = visitStatement(stmt, scope.createChild(), stackName);
 
         if (stmt is ReturnStatement) {
+          callStack.pop();
           return result;
         }
       }
 
+      callStack.pop();
       return null;
     }
 
@@ -78,15 +90,19 @@ class Samurai {
       return visitFunctionNode(node.function, scope);
     }
 
-    // TODO: Throw proper error
-    throw new ArgumentError(node.runtimeType.toString());
+    throw callStack.error('Unsupported', node.runtimeType.toString());
   }
 
   JsObject visitExpression(Expression node, SymbolTable<JsObject> scope) {
     if (node is NameExpression) {
-      // TODO: ReferenceError on undefined...?
       var ref = scope.resolve(node.name.value)?.value ??
           scope.context.properties[node.name.value];
+
+      if (ref == null) {
+        throw callStack.error(
+            'Reference', '${node.name.value} is not defined.');
+      }
+
       return ref;
     }
 
@@ -142,24 +158,40 @@ class Samurai {
             node.arguments.map((e) => visitExpression(e, scope)).toList(),
             target);
 
-        var childScope = (target.closureScope ?? scope)
-            .createChild(values: {'arguments': arguments});
+        var childScope = (target.closureScope ?? scope);
+        childScope = childScope.createChild(values: {'arguments': arguments});
+        childScope.context = target.context ?? scope.context;
+
+        JsObject result;
+
+        if (target.declaration != null) {
+          callStack.push(target.declaration.filename, target.declaration.line,
+              target.name);
+        }
 
         if (node.isNew) {
-          var result = target.newInstance();
+          result = target.newInstance();
           target.f(this, arguments, childScope..context = result);
-          return result;
         } else {
-          return target.f(this, arguments, childScope);
+          result = target.f(this, arguments, childScope);
         }
+
+        if (target.declaration != null) {
+          callStack.pop();
+        }
+
+        return result;
       } else {
-        // TODO: Throw proper error
         if (node.isNew) {
-          throw 'TypeError: ${target?.valueOf ??
-              'undefined'} is not a constructor';
+          throw callStack.error(
+              'Type',
+              '${target?.valueOf ??
+                  'undefined'} is not a constructor.');
         } else {
-          throw 'TypeError: ${target?.valueOf ??
-              'undefined'} is not a function';
+          throw callStack.error(
+              'Type',
+              '${target?.valueOf ??
+                  'undefined'} is not a function.');
         }
       }
     }
@@ -218,8 +250,8 @@ class Samurai {
           );
         }
       } else {
-        // TODO: Proper error
-        throw 'ReferenceError: Invalid left-hand side in assignment';
+        throw callStack.error(
+            'Reference', 'Invalid left-hand side in assignment');
       }
     }
 
@@ -227,8 +259,7 @@ class Samurai {
       return node.expressions.map((e) => visitExpression(e, scope)).last;
     }
 
-    // TODO: Throw proper error
-    throw new ArgumentError();
+    throw callStack.error('Unsupported', node.runtimeType.toString());
   }
 
   JsObject performBinaryOperation(String op, JsObject left, JsObject right) {
@@ -301,16 +332,16 @@ class Samurai {
   }
 
   JsObject visitFunctionNode(FunctionNode node, SymbolTable<JsObject> scope) {
-    var function = new JsFunction(scope.context, (samurai, arguments, scope) {
+    JsFunction function;
+    function = new JsFunction(scope.context, (samurai, arguments, scope) {
       for (double i = 0.0; i < node.params.length; i++) {
         scope.create(node.params[i.toInt()].value,
             value: arguments.properties[i]);
       }
 
-      return visitStatement(node.body, scope);
+      return visitStatement(node.body, scope, function.name);
     });
-    function.closureScope = scope.fork();
-
+    function.declaration = node;
     function.properties['length'] = new JsNumber(node.params.length);
     function.properties['name'] = new JsString(node.name?.value ?? 'anonymous');
 
@@ -319,6 +350,7 @@ class Samurai {
       scope.create(node.name.value, value: function, constant: true);
     }
 
+    function.closureScope = scope.fork();
     return function;
   }
 }

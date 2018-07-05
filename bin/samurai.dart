@@ -8,9 +8,13 @@ main(List<String> args) async {
   var samurai = new Samurai();
 
   if (args.isNotEmpty) {
-    var file = new File(args[0]);
-    var node = parsejs(await file.readAsString(), filename: file.path);
-    samurai.visitProgram(node);
+    try {
+      var file = new File(args[0]);
+      var node = parsejs(await file.readAsString(), filename: file.path);
+      samurai.visitProgram(node);
+    } on SamuraiException catch (e) {
+      print(red.wrap(e.toString()));
+    }
   } else {
     var repl = new Repl(prompt: '> ');
 
