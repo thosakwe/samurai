@@ -58,5 +58,8 @@ class JsNumber extends JsObject {
 
 class JsNull extends JsObject {
   @override
+  Null get valueOf => null;
+
+  @override
   String toString() => 'null';
 }

@@ -65,12 +65,14 @@ class Samurai {
       }
     });
 
-    var isFinite = new JsFunction(global, (_, arguments, __) {
-      return new JsBoolean(coerceToNumber(arguments.getProperty(0.0)).isFinite);
+    var isFinite = new JsFunction(global, (_, arguments, ctx) {
+      return new JsBoolean(
+          coerceToNumber(arguments.getProperty(0.0), this, ctx).isFinite);
     });
 
-    var isNaN = new JsFunction(global, (_, arguments, __) {
-      return new JsBoolean(coerceToNumber(arguments.getProperty(0.0)).isNaN);
+    var isNaN = new JsFunction(global, (_, arguments, ctx) {
+      return new JsBoolean(
+          coerceToNumber(arguments.getProperty(0.0), this, ctx).isNaN);
     });
 
     var parseFloatFunction = new JsFunction(global, (_, arguments, __) {
@@ -320,7 +322,7 @@ class Samurai {
     if (node is BinaryExpression) {
       var left = visitExpression(node.left, ctx);
       var right = visitExpression(node.right, ctx);
-      return performBinaryOperation(node.operator, left, right);
+      return performBinaryOperation(node.operator, left, right, ctx);
     }
 
     if (node is AssignmentExpression) {
@@ -340,6 +342,7 @@ class Samurai {
                   trimmedOp,
                   visitExpression(l, ctx),
                   visitExpression(node.right, ctx),
+                  ctx,
                 ),
               )
               .value;
@@ -358,6 +361,7 @@ class Samurai {
               trimmedOp,
               left.getProperty(l.property.value),
               visitExpression(node.right, ctx),
+              ctx,
             ),
           );
         }
@@ -371,10 +375,25 @@ class Samurai {
       return node.expressions.map((e) => visitExpression(e, ctx)).last;
     }
 
+    if (node is UnaryExpression) {
+      var expr = visitExpression(node.argument, ctx);
+
+      // +, -, !, ~, typeof, void, delete
+      switch (node.operator) {
+        case 'typeof':
+          return new JsString(expr?.typeof ?? 'undefined');
+        case 'void':
+          return null;
+        default:
+          throw callStack.error('Unsupported', node.operator);
+      }
+    }
+
     throw callStack.error('Unsupported', node.runtimeType.toString());
   }
 
-  JsObject performBinaryOperation(String op, JsObject left, JsObject right) {
+  JsObject performBinaryOperation(
+      String op, JsObject left, JsObject right, SamuraiContext ctx) {
     // TODO: May be: ==, !=, ===, !==, in, instanceof
     if (op == '==') {
       // TODO: Loose equality
@@ -387,26 +406,26 @@ class Samurai {
     } else if (op == '||') {
       return (left?.isTruthy == true) ? left : right;
     } else if (op == '<') {
-      return safeBooleanOperation(left, right, (l, r) => l < r);
+      return safeBooleanOperation(left, right, this, ctx, (l, r) => l < r);
     } else if (op == '<=') {
-      return safeBooleanOperation(left, right, (l, r) => l <= r);
+      return safeBooleanOperation(left, right, this, ctx, (l, r) => l <= r);
     } else if (op == '>') {
-      return safeBooleanOperation(left, right, (l, r) => l > r);
+      return safeBooleanOperation(left, right, this, ctx, (l, r) => l > r);
     } else if (op == '>=') {
-      return safeBooleanOperation(left, right, (l, r) => l >= r);
+      return safeBooleanOperation(left, right, this, ctx, (l, r) => l >= r);
     } else {
-      return performNumericalBinaryOperation(op, left, right);
+      return performNumericalBinaryOperation(op, left, right, ctx);
     }
   }
 
   JsObject performNumericalBinaryOperation(
-      String op, JsObject left, JsObject right) {
+      String op, JsObject left, JsObject right, SamuraiContext ctx) {
     if (op == '+' && (!canCoerceToNumber(left) || !canCoerceToNumber(right))) {
       // TODO: Append string...
       return new JsString(left.toString() + right.toString());
     } else {
-      var l = coerceToNumber(left);
-      var r = coerceToNumber(right);
+      var l = coerceToNumber(left, this, ctx);
+      var r = coerceToNumber(right, this, ctx);
 
       if (l.isNaN || r.isNaN) {
         return new JsNumber(double.nan);
@@ -465,5 +484,29 @@ class Samurai {
     function.closureScope = ctx.scope.fork();
     function.closureScope.context = ctx.scope.context;
     return function;
+  }
+
+  JsObject invoke(JsFunction target, List<JsObject> args, SamuraiContext ctx) {
+    var scope = ctx.scope, callStack = ctx.callStack;
+    var childScope = (target.closureScope ?? scope);
+    var arguments = new JsArguments(args, target);
+    childScope = childScope.createChild(values: {'arguments': arguments});
+    childScope.context = target.context ?? scope.context;
+
+    JsObject result;
+
+    if (target.declaration != null) {
+      callStack.push(
+          target.declaration.filename, target.declaration.line, target.name);
+    }
+
+    result =
+        target.f(this, arguments, new SamuraiContext(childScope, callStack));
+
+    if (target.declaration != null) {
+      callStack.pop();
+    }
+
+    return result;
   }
 }

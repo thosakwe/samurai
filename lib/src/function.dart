@@ -14,6 +14,7 @@ class JsFunction extends JsObject {
   Node declaration;
 
   JsFunction(this.context, this.f) {
+    typeof = 'function';
     properties['length'] = new JsNumber(0);
     properties['name'] = new JsString('anonymous');
     properties['prototype'] = new JsObject();
