@@ -257,6 +257,7 @@ class Samurai {
     }
 
     if (node is IndexExpression) {
+      // TODO: What are the actual semantics of this in JavaScript?
       var target = visitExpression(node.object, ctx);
       var index = visitExpression(node.property, ctx);
       return target.properties[index.valueOf];
@@ -365,6 +366,8 @@ class Samurai {
             ),
           );
         }
+      } else if (l is IndexExpression) {
+        // TODO: Set values, extend arrays
       } else {
         throw callStack.error(
             'Reference', 'Invalid left-hand side in assignment');
@@ -376,10 +379,58 @@ class Samurai {
     }
 
     if (node is UnaryExpression) {
+      if (node.operator == 'delete') {
+        var left = node.argument;
+
+        if (left is IndexExpression) {
+          var l = visitExpression(left.object, ctx);
+          var property = visitExpression(left.property, ctx);
+          var idx = coerceToNumber(property, this, ctx);
+
+          if (l is JsArray && idx.isFinite) {
+            if (idx >= 0 && idx < l.valueOf.length) {
+              l.valueOf[idx.toInt()] = new JsEmptyItem();
+            }
+          } else if (l is! JsBuiltinObject) {
+            return new JsBoolean(l.removeProperty(property, this, ctx));
+          }
+        } else if (left is MemberExpression) {
+          var l = visitExpression(left.object, ctx);
+
+          if (l is! JsBuiltinObject) {
+            return new JsBoolean(
+                l.removeProperty(left.property.value, this, ctx));
+          }
+        }
+
+        return new JsBoolean(true);
+      }
+
       var expr = visitExpression(node.argument, ctx);
 
       // +, -, !, ~, typeof, void, delete
       switch (node.operator) {
+        case '!':
+          return new JsBoolean(expr?.isTruthy != true);
+        case '+':
+          return new JsNumber(coerceToNumber(expr, this, ctx));
+        case '~':
+          var n = coerceToNumber(expr, this, ctx);
+          if (!n.isFinite) return new JsNumber(n);
+          return new JsNumber(-(n + 1));
+        case '-':
+          var value = coerceToNumber(expr, this, ctx);
+
+          if (value == null || value.isNaN) {
+            return new JsNumber(double.nan);
+          } else if (!value.isFinite) {
+            return new JsNumber(
+                value.isNegative ? double.infinity : double.negativeInfinity);
+          } else {
+            return new JsNumber(-1.0 * value);
+          }
+
+          break;
         case 'typeof':
           return new JsString(expr?.typeof ?? 'undefined');
         case 'void':
@@ -421,7 +472,6 @@ class Samurai {
   JsObject performNumericalBinaryOperation(
       String op, JsObject left, JsObject right, SamuraiContext ctx) {
     if (op == '+' && (!canCoerceToNumber(left) || !canCoerceToNumber(right))) {
-      // TODO: Append string...
       return new JsString(left.toString() + right.toString());
     } else {
       var l = coerceToNumber(left, this, ctx);

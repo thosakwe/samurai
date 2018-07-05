@@ -1,4 +1,8 @@
+import 'context.dart';
 import 'function.dart';
+import 'literal.dart';
+import 'samurai.dart';
+import 'util.dart';
 
 class JsObject {
   final Map<dynamic, JsObject> properties = {};
@@ -15,12 +19,37 @@ class JsObject {
     return false;
   }
 
+  coerceIndex(name) {
+    if (name is JsNumber) {
+      return name.toString();
+    } else if (name is JsString) {
+      return name.toString();
+    } else {
+      return name;
+    }
+  }
+
   JsObject getProperty(name) {
 //    if (name == 'prototype') {
 //      return new JsPrototype(prototype);
 //    } else {
-    return properties[name];
+    return properties[coerceIndex(name)];
 //    }
+  }
+
+  bool removeProperty(name, Samurai samurai, SamuraiContext ctx) {
+    name = coerceIndex(name);
+    properties.remove(name);
+    return true;
+    /*
+    if (name is JsObject) {
+      return removeProperty(coerceToString(name, samurai, ctx), samurai, ctx);
+    } else if (name is String) {
+    } else {
+      properties.remove(name);
+      return true;
+    }
+    */
   }
 
   Map<dynamic, JsObject> get prototype {
@@ -48,9 +77,11 @@ class JsObject {
   String toString() => '[object Object]';
 
   JsObject setProperty(name, JsObject value) {
-    return properties[name] = value;
+    return properties[coerceIndex(name)] = value;
   }
 }
+
+class JsBuiltinObject extends JsObject {}
 
 class JsPrototype extends JsObject {
   @override

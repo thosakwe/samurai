@@ -1,4 +1,3 @@
-import 'package:parsejs/parsejs.dart';
 import 'array.dart';
 import 'context.dart';
 import 'function.dart';
@@ -11,7 +10,8 @@ bool canCoerceToNumber(JsObject object) {
       object is JsBoolean ||
       object is JsNull ||
       object == null ||
-      (object is JsArray && object.valueOf.length != 1);
+      (object is JsArray && object.valueOf.length != 1) ||
+      object.properties.containsKey('valueOf');
 }
 
 double coerceToNumber(JsObject object, Samurai samurai, SamuraiContext ctx) {
@@ -34,13 +34,20 @@ double coerceToNumber(JsObject object, Samurai samurai, SamuraiContext ctx) {
       if (valueOfFunc is JsFunction) {
         return coerceToNumber(
             samurai.invoke(valueOfFunc, [], ctx), samurai, ctx);
-      } else {
-        throw ctx.callStack.error(
-            'Type', 'The .valueOf property for this object is not a function.');
       }
+
+      return double.nan;
     } else {
       return double.nan;
     }
+  }
+}
+
+String coerceToString(JsObject object, Samurai samurai, SamuraiContext ctx) {
+  if (object == null) {
+    return 'undefined';
+  } else {
+    return object.toString();
   }
 }
 

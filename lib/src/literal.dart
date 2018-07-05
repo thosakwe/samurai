@@ -40,7 +40,7 @@ class JsNumber extends JsObject {
   double get valueOf => _valueOf.toDouble();
 
   @override
-  bool get isTruthy => valueOf != 0;
+  bool get isTruthy => valueOf != 0.0;
 
   @override
   String toString() {
@@ -59,6 +59,9 @@ class JsNumber extends JsObject {
 class JsNull extends JsObject {
   @override
   Null get valueOf => null;
+
+  @override
+  bool get isTruthy => false;
 
   @override
   String toString() => 'null';

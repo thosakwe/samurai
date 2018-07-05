@@ -1,4 +1,8 @@
+import 'context.dart';
+import 'literal.dart';
 import 'object.dart';
+import 'samurai.dart';
+import 'util.dart';
 
 class JsArray extends JsObject {
   final List<JsObject> valueOf = [];
@@ -17,7 +21,7 @@ class JsArray extends JsObject {
     } else if (valueOf.length == 1) {
       return valueOf[0].toString();
     } else {
-      return valueOf.map((x) => x.toString()).join(',');
+      return valueOf.map((x) => x?.toString() ?? 'undefined').join(',');
     }
   }
 
@@ -25,9 +29,33 @@ class JsArray extends JsObject {
   JsObject getProperty(name) {
     if (name is num) {
       // TODO: RangeError?
-      return valueOf[name.toInt()];
+      var v = valueOf[name.toInt()];
+      return v is JsEmptyItem ? null : v;
     } else {
       return super.getProperty(name);
     }
   }
+
+  @override
+  bool removeProperty(name, Samurai samurai, SamuraiContext ctx) {
+    if (name is String) {
+      return removeProperty(
+          coerceToNumber(new JsString(name), samurai, ctx), samurai, ctx);
+    } else if (name is num && name.isFinite) {
+      var i = name.toInt();
+      if (i >= 0 && i < valueOf.length) {
+        valueOf[i] = new JsEmptyItem();
+      }
+      return true;
+    } else {
+      return super.removeProperty(name, samurai, ctx);
+    }
+  }
+
+  // TODO: Set property for index..?
+}
+
+class JsEmptyItem extends JsObject {
+  @override
+  String toString() => '';
 }
