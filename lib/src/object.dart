@@ -1,4 +1,4 @@
-import 'package:collection/collection.dart';
+import 'function.dart';
 
 class JsObject {
   final Map<dynamic, JsObject> properties = {};
@@ -26,6 +26,17 @@ class JsObject {
   JsObject newInstance() {
     // TODO: Bind functions?
     var obj = new JsObject();
+
+    for (var key in properties.keys) {
+      var value = properties[key];
+
+      if (value is JsFunction) {
+        obj.properties[key] = value.bind(obj);
+      } else {
+        obj.properties[key] = value;
+      }
+    }
+
     return obj;
   }
 

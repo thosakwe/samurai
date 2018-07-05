@@ -33,6 +33,13 @@ class JsFunction extends JsObject {
 
   void set name(String value) => properties['name'] = new JsString(value);
 
+  JsFunction bind(JsObject newContext) {
+    return new JsFunction(newContext, f)
+      ..properties.addAll(properties)
+      ..closureScope = closureScope.fork()
+      ..declaration = declaration;
+  }
+
   @override
   String toString() {
     return isAnonymous ? '[Function]' : '[Function: $name]';
