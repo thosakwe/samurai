@@ -226,6 +226,10 @@ class Samurai {
       }
     }
 
+    if (node is SequenceExpression) {
+      return node.expressions.map((e) => visitExpression(e, scope)).first;
+    }
+
     // TODO: Throw proper error
     throw new ArgumentError();
   }
