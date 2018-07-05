@@ -12,6 +12,7 @@ class JsFunction extends JsObject {
   JsFunction(this.context, this.f) {
     properties['length'] = new JsNumber(0);
     properties['name'] = new JsString('anonymous');
+    properties['prototype'] = new JsObject();
   }
 
 // TODO: toString()

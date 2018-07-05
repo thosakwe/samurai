@@ -6,6 +6,7 @@ import 'arguments.dart';
 import 'function.dart';
 import 'literal.dart';
 import 'object.dart';
+import 'util.dart';
 
 class Samurai {
   final List<Completer> awaiting = <Completer>[];
@@ -59,6 +60,8 @@ class Samurai {
         // TODO: What if it already exists?
         scope.create(decl.name.value, value: visitExpression(decl.init, scope));
       }
+
+      return null;
     }
 
     // TODO: Throw proper error
@@ -173,7 +176,100 @@ class Samurai {
       return new JsArray()..valueOf.addAll(items);
     }
 
+    if (node is BinaryExpression) {
+      var left = visitExpression(node.left, scope);
+      var right = visitExpression(node.right, scope);
+      return performBinaryOperation(node.operator, left, right);
+    }
+
+    if (node is AssignmentExpression) {
+      var l = node.left;
+
+      if (l is NameExpression) {
+        if (node.operator == '=') {
+          return scope
+              .assign(l.name.value, visitExpression(node.right, scope))
+              .value;
+        } else {
+          var trimmedOp = node.operator.substring(0, node.operator.length - 1);
+          return scope
+              .assign(
+                l.name.value,
+                performBinaryOperation(
+                  trimmedOp,
+                  visitExpression(l, scope),
+                  visitExpression(node.right, scope),
+                ),
+              )
+              .value;
+        }
+      } else if (l is MemberExpression) {
+        var left = visitExpression(l.object, scope);
+
+        if (node.operator == '=') {
+          return left.setProperty(
+              l.property.value, visitExpression(node.right, scope));
+        } else {
+          var trimmedOp = node.operator.substring(0, node.operator.length - 1);
+          return left.setProperty(
+            l.property.value,
+            performBinaryOperation(
+              trimmedOp,
+              left.getProperty(l.property.value),
+              visitExpression(node.right, scope),
+            ),
+          );
+        }
+      } else {
+        // TODO: Proper error
+        throw 'ReferenceError: Invalid left-hand side in assignment';
+      }
+    }
+
     // TODO: Throw proper error
     throw new ArgumentError();
+  }
+
+  JsObject performBinaryOperation(String op, JsObject left, JsObject right) {
+    if (op == '+' && (!canCoerceToNumber(left) || !canCoerceToNumber(right))) {
+      // TODO: Append string...
+      return new JsString(left.toString() + right.toString());
+    } else {
+      var l = coerceToNumber(left);
+      var r = coerceToNumber(right);
+
+      if (l.isNaN || r.isNaN) {
+        return new JsNumber(double.nan);
+      }
+
+      // =, +=, -=, *=, /=, %=, <<=, >>=, >>>=, |=, ^=, &=
+      switch (op) {
+        case '+':
+          return new JsNumber(l + r);
+        case '-':
+          return new JsNumber(l - r);
+        case '*':
+          return new JsNumber(l * r);
+        case '/':
+          return new JsNumber(l / r);
+        case '%':
+          return new JsNumber(l % r);
+        case '<<':
+          return new JsNumber(l.toInt() << r.toInt());
+        case '>>':
+          return new JsNumber(l.toInt() >> r.toInt());
+        case '>>>':
+          // TODO: Is a zero-filled right shift relevant with Dart?
+          return new JsNumber(l.toInt() >> r.toInt());
+        case '|':
+          return new JsNumber(l.toInt() | r.toInt());
+        case '^':
+          return new JsNumber(l.toInt() ^ r.toInt());
+        case '&':
+          return new JsNumber(l.toInt() & r.toInt());
+        default:
+          throw new ArgumentError();
+      }
+    }
   }
 }

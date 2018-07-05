@@ -5,3 +5,4 @@ export 'src/number.dart';
 export 'src/object.dart';
 export 'src/samurai.dart';
 export 'src/string.dart';
+export 'src/util.dart';

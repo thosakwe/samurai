@@ -2,7 +2,8 @@ import 'package:collection/collection.dart';
 
 class JsObject {
   final Map<dynamic, JsObject> properties = {};
-  final Map<String, JsObject> prototype = {};
+
+  //final Map<String, JsObject> prototype = {};
   String typeof = 'object';
 
   bool get isTruthy => true;
@@ -15,20 +16,25 @@ class JsObject {
   }
 
   JsObject getProperty(name) {
-    if (name == 'prototype') {
-      return new JsPrototype(prototype);
-    } else {
-      return properties[name];
-    }
+//    if (name == 'prototype') {
+//      return new JsPrototype(prototype);
+//    } else {
+    return properties[name];
+//    }
   }
 
   JsObject newInstance() {
     // TODO: Bind functions?
-    return new JsObject()..properties.addAll(prototype);
+    var obj = new JsObject();
+    return obj;
   }
 
   @override
   String toString() => '[object Object]';
+
+  JsObject setProperty(name, JsObject value) {
+    return properties[name] = value;
+  }
 }
 
 class JsPrototype extends JsObject {
