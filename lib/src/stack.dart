@@ -3,6 +3,8 @@ import 'dart:collection';
 class CallStack {
   final Queue<Frame> _frames = new Queue<Frame>();
 
+  List<Frame> get frames => _frames.toList();
+
   void clear() => _frames.clear();
 
   void push(String filename, int line, String name) {

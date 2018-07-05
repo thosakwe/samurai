@@ -1,11 +1,26 @@
 import 'dart:io';
 import 'package:cli_repl/cli_repl.dart';
 import 'package:io/ansi.dart';
+import 'package:logging/logging.dart';
 import 'package:parsejs/parsejs.dart';
 import 'package:samurai/samurai.dart';
 
 main(List<String> args) async {
   var samurai = new Samurai();
+  var logger = new Logger('samurai');
+  samurai.global.properties['console'] = new JsConsole(logger);
+
+  logger.onRecord.listen((rec) {
+    if (rec.level == Level.SEVERE) {
+      print(red.wrap(rec.toString()));
+    } else if (rec.level == Level.WARNING) {
+      print(yellow.wrap(rec.toString()));
+    } else if (rec.level == Level.INFO) {
+      print(cyan.wrap(rec.toString()));
+    } else {
+      print(rec);
+    }
+  });
 
   if (args.isNotEmpty) {
     try {

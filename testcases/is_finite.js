@@ -5,8 +5,8 @@ function div(x) {
   return "Number is Infinity!";
 }
 
-print(div(0));
+console.log(div(0));
 // expected output: "Number is Infinity!""
 
-print(div(1));
+console.log(div(1));
 // expected output: "Number is NOT Infinity."
