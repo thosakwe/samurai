@@ -14,6 +14,16 @@ class Samurai {
   final JsObject global = new JsObject();
 
   Samurai() {
+    var printFunction = new JsFunction(
+      global,
+      (samurai, arguments, scope) {
+        arguments.valueOf.forEach(print);
+      },
+    );
+
+    global.properties['print'] = printFunction
+      ..properties['name'] = new JsString('print');
+
     scope
       ..context = global
       ..create('global', value: global);
@@ -62,6 +72,10 @@ class Samurai {
       }
 
       return null;
+    }
+
+    if (node is FunctionDeclaration) {
+      return visitFunctionNode(node.function);
     }
 
     // TODO: Throw proper error
@@ -150,25 +164,7 @@ class Samurai {
     }
 
     if (node is FunctionExpression) {
-      var function = new JsFunction(scope.context, (samurai, arguments, scope) {
-        for (double i = 0.0; i < node.function.params.length; i++) {
-          scope.create(node.function.params[i.toInt()].value,
-              value: arguments.properties[i]);
-        }
-
-        return visitStatement(node.function.body, scope);
-      });
-
-      function.properties['length'] = new JsNumber(node.function.params.length);
-      function.properties['name'] =
-          new JsString(node.function.name?.value ?? 'anonymous');
-
-      // TODO: What about hoisting???
-      if (node.function.name != null) {
-        scope.create(node.function.name.value, value: function, constant: true);
-      }
-
-      return function;
+      return visitFunctionNode(node.function);
     }
 
     if (node is ArrayExpression) {
@@ -195,7 +191,7 @@ class Samurai {
           return scope
               .assign(
                 l.name.value,
-                performBinaryOperation(
+                performNumericalBinaryOperation(
                   trimmedOp,
                   visitExpression(l, scope),
                   visitExpression(node.right, scope),
@@ -213,7 +209,7 @@ class Samurai {
           var trimmedOp = node.operator.substring(0, node.operator.length - 1);
           return left.setProperty(
             l.property.value,
-            performBinaryOperation(
+            performNumericalBinaryOperation(
               trimmedOp,
               left.getProperty(l.property.value),
               visitExpression(node.right, scope),
@@ -227,7 +223,7 @@ class Samurai {
     }
 
     if (node is SequenceExpression) {
-      return node.expressions.map((e) => visitExpression(e, scope)).first;
+      return node.expressions.map((e) => visitExpression(e, scope)).last;
     }
 
     // TODO: Throw proper error
@@ -235,6 +231,32 @@ class Samurai {
   }
 
   JsObject performBinaryOperation(String op, JsObject left, JsObject right) {
+    // TODO: May be: ==, !=, ===, !==, in, instanceof
+    if (op == '==') {
+      // TODO: Loose equality
+      throw new UnimplementedError('== operator');
+    } else if (op == '===') {
+      // TODO: Override operator
+      return new JsBoolean(left == right);
+    } else if (op == '&&') {
+      return !left.isTruthy ? left : right;
+    } else if (op == '||') {
+      return left.isTruthy ? left : right;
+    } else if (op == '<') {
+      return safeBooleanOperation(left, right, (l, r) => l < r);
+    } else if (op == '<=') {
+      return safeBooleanOperation(left, right, (l, r) => l <= r);
+    } else if (op == '>') {
+      return safeBooleanOperation(left, right, (l, r) => l > r);
+    } else if (op == '>=') {
+      return safeBooleanOperation(left, right, (l, r) => l >= r);
+    } else {
+      return performNumericalBinaryOperation(op, left, right);
+    }
+  }
+
+  JsObject performNumericalBinaryOperation(
+      String op, JsObject left, JsObject right) {
     if (op == '+' && (!canCoerceToNumber(left) || !canCoerceToNumber(right))) {
       // TODO: Append string...
       return new JsString(left.toString() + right.toString());
@@ -275,5 +297,26 @@ class Samurai {
           throw new ArgumentError();
       }
     }
+  }
+
+  JsObject visitFunctionNode(FunctionNode node) {
+    var function = new JsFunction(scope.context, (samurai, arguments, scope) {
+      for (double i = 0.0; i < node.params.length; i++) {
+        scope.create(node.params[i.toInt()].value,
+            value: arguments.properties[i]);
+      }
+
+      return visitStatement(node.body, scope);
+    });
+
+    function.properties['length'] = new JsNumber(node.params.length);
+    function.properties['name'] = new JsString(node.name?.value ?? 'anonymous');
+
+    // TODO: What about hoisting???
+    if (node.name != null) {
+      scope.create(node.name.value, value: function, constant: true);
+    }
+
+    return function;
   }
 }

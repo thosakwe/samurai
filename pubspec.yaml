@@ -6,11 +6,12 @@ environment:
 homepage: https://github.com/thosakwe/samurai.git
 version: 0.0.0
 dependencies:
+  cli_repl: ^0.2.0
   code_buffer: ^1.0.0
+  logging: ^0.11.3
   parsejs: ^1.1.0
   symbol_table: ^1.0.0
 dev_dependencies:
-  cli_repl: ^0.2.0
   test: ^0.12.0
 executables:
   samurai: samurai
