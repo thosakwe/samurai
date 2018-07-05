@@ -75,7 +75,7 @@ class Samurai {
     }
 
     if (node is FunctionDeclaration) {
-      return visitFunctionNode(node.function);
+      return visitFunctionNode(node.function, scope);
     }
 
     // TODO: Throw proper error
@@ -142,7 +142,8 @@ class Samurai {
             node.arguments.map((e) => visitExpression(e, scope)).toList(),
             target);
 
-        var childScope = scope.createChild(values: {'arguments': arguments});
+        var childScope = (target.closureScope ?? scope)
+            .createChild(values: {'arguments': arguments});
 
         if (node.isNew) {
           var result = target.newInstance();
@@ -164,7 +165,7 @@ class Samurai {
     }
 
     if (node is FunctionExpression) {
-      return visitFunctionNode(node.function);
+      return visitFunctionNode(node.function, scope);
     }
 
     if (node is ArrayExpression) {
@@ -299,7 +300,7 @@ class Samurai {
     }
   }
 
-  JsObject visitFunctionNode(FunctionNode node) {
+  JsObject visitFunctionNode(FunctionNode node, SymbolTable<JsObject> scope) {
     var function = new JsFunction(scope.context, (samurai, arguments, scope) {
       for (double i = 0.0; i < node.params.length; i++) {
         scope.create(node.params[i.toInt()].value,
@@ -308,6 +309,7 @@ class Samurai {
 
       return visitStatement(node.body, scope);
     });
+    function.closureScope = scope.fork();
 
     function.properties['length'] = new JsNumber(node.params.length);
     function.properties['name'] = new JsString(node.name?.value ?? 'anonymous');

@@ -8,6 +8,7 @@ import 'samurai.dart';
 class JsFunction extends JsObject {
   final JsObject Function(Samurai, JsArguments, SymbolTable<JsObject>) f;
   final JsObject context;
+  SymbolTable<JsObject> closureScope;
 
   JsFunction(this.context, this.f) {
     properties['length'] = new JsNumber(0);
