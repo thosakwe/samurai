@@ -3,6 +3,7 @@ import 'package:parsejs/parsejs.dart';
 import 'package:symbol_table/symbol_table.dart';
 import 'array.dart';
 import 'arguments.dart';
+import 'context.dart';
 import 'function.dart';
 import 'literal.dart';
 import 'object.dart';
@@ -11,8 +12,7 @@ import 'util.dart';
 
 class Samurai {
   final List<Completer> awaiting = <Completer>[];
-  final CallStack callStack = new CallStack();
-  final SymbolTable<JsObject> scope = new SymbolTable();
+  final SymbolTable<JsObject> globalScope = new SymbolTable();
   final JsObject global = new JsObject();
 
   Samurai() {
@@ -53,7 +53,7 @@ class Samurai {
       }
     });
 
-    var evalFunction = new JsFunction(global, (_, arguments, __) {
+    var evalFunction = new JsFunction(global, (_, arguments, ctx) {
       var src = arguments.getProperty(0.0)?.toString();
       if (src == null || src.trim().isEmpty) return null;
 
@@ -61,7 +61,7 @@ class Samurai {
         var program = parsejs(src, filename: 'eval');
         return visitProgram(program, 'eval');
       } on ParseError catch (e) {
-        throw callStack.error('Syntax', e.message);
+        throw ctx.callStack.error('Syntax', e.message);
       }
     });
 
@@ -114,12 +114,14 @@ class Samurai {
       'print': printFunction..properties['name'] = new JsString('print'),
     });
 
-    scope
+    globalScope
       ..context = global
       ..create('global', value: global);
   }
 
   JsObject visitProgram(Program node, [String stackName = '<entry>']) {
+    var callStack = new CallStack();
+    var ctx = new SamuraiContext(globalScope, callStack);
     callStack.push(node.filename, node.line, stackName);
 
     // TODO: Hoist functions, declarations into global scope.
@@ -127,7 +129,7 @@ class Samurai {
 
     for (var stmt in node.body) {
       callStack.push(stmt.filename, stmt.line, stackName);
-      var result = visitStatement(stmt, scope, stackName);
+      var result = visitStatement(stmt, ctx, stackName);
 
       if (stmt is ExpressionStatement) {
         out = result;
@@ -141,19 +143,22 @@ class Samurai {
   }
 
   JsObject visitStatement(
-      Statement node, SymbolTable<JsObject> scope, String stackName) {
+      Statement node, SamuraiContext ctx, String stackName) {
+    var scope = ctx.scope;
+    var callStack = ctx.callStack;
+
     if (node is ExpressionStatement) {
-      return visitExpression(node.expression, scope);
+      return visitExpression(node.expression, ctx);
     }
 
     if (node is ReturnStatement) {
-      return visitExpression(node.argument, scope);
+      return visitExpression(node.argument, ctx);
     }
 
     if (node is BlockStatement) {
       for (var stmt in node.body) {
         callStack.push(stmt.filename, stmt.line, stackName);
-        var result = visitStatement(stmt, scope.createChild(), stackName);
+        var result = visitStatement(stmt, ctx.createChild(), stackName);
 
         if (stmt is ReturnStatement) {
           callStack.pop();
@@ -168,7 +173,7 @@ class Samurai {
     if (node is VariableDeclaration) {
       for (var decl in node.declarations) {
         Variable<JsObject> symbol;
-        var value = visitExpression(decl.init, scope);
+        var value = visitExpression(decl.init, ctx);
 
         try {
           symbol = scope.create(decl.name.value, value: value);
@@ -185,20 +190,23 @@ class Samurai {
     }
 
     if (node is FunctionDeclaration) {
-      return visitFunctionNode(node.function, scope);
+      return visitFunctionNode(node.function, ctx);
     }
 
     throw callStack.error('Unsupported', node.runtimeType.toString());
   }
 
-  JsObject visitExpression(Expression node, SymbolTable<JsObject> scope) {
+  JsObject visitExpression(Expression node, SamuraiContext ctx) {
+    var scope = ctx.scope;
+    var callStack = ctx.callStack;
+
     if (node is NameExpression) {
       if (node.name.value == 'undefined') {
         return null;
       }
 
       var ref = scope.resolve(node.name.value)?.value ??
-          scope.context.properties[node.name.value];
+          global.properties[node.name.value];
 
       if (ref == null) {
         throw callStack.error(
@@ -209,7 +217,7 @@ class Samurai {
     }
 
     if (node is MemberExpression) {
-      var target = visitExpression(node.object, scope);
+      var target = visitExpression(node.object, ctx);
       return target?.getProperty(node.property.value);
     }
 
@@ -221,7 +229,7 @@ class Samurai {
       var props = {};
 
       for (var prop in node.properties) {
-        props[prop.nameString] = visitExpression(prop.expression, scope);
+        props[prop.nameString] = visitExpression(prop.expression, ctx);
       }
 
       return new JsObject()..properties.addAll(props);
@@ -240,24 +248,24 @@ class Samurai {
     }
 
     if (node is ConditionalExpression) {
-      var condition = visitExpression(node.condition, scope);
+      var condition = visitExpression(node.condition, ctx);
       return (condition?.isTruthy == true)
-          ? visitExpression(node.then, scope)
-          : visitExpression(node.otherwise, scope);
+          ? visitExpression(node.then, ctx)
+          : visitExpression(node.otherwise, ctx);
     }
 
     if (node is IndexExpression) {
-      var target = visitExpression(node.object, scope);
-      var index = visitExpression(node.property, scope);
+      var target = visitExpression(node.object, ctx);
+      var index = visitExpression(node.property, ctx);
       return target.properties[index.valueOf];
     }
 
     if (node is CallExpression) {
-      var target = visitExpression(node.callee, scope);
+      var target = visitExpression(node.callee, ctx);
 
       if (target is JsFunction) {
         var arguments = new JsArguments(
-            node.arguments.map((e) => visitExpression(e, scope)).toList(),
+            node.arguments.map((e) => visitExpression(e, ctx)).toList(),
             target);
 
         var childScope = (target.closureScope ?? scope);
@@ -273,9 +281,11 @@ class Samurai {
 
         if (node.isNew) {
           result = target.newInstance();
-          target.f(this, arguments, childScope..context = result);
+          childScope.context = result;
+          target.f(this, arguments, new SamuraiContext(childScope, callStack));
         } else {
-          result = target.f(this, arguments, childScope);
+          result = target.f(
+              this, arguments, new SamuraiContext(childScope, callStack));
         }
 
         if (target.declaration != null) {
@@ -299,17 +309,17 @@ class Samurai {
     }
 
     if (node is FunctionExpression) {
-      return visitFunctionNode(node.function, scope);
+      return visitFunctionNode(node.function, ctx);
     }
 
     if (node is ArrayExpression) {
-      var items = node.expressions.map((e) => visitExpression(e, scope));
+      var items = node.expressions.map((e) => visitExpression(e, ctx));
       return new JsArray()..valueOf.addAll(items);
     }
 
     if (node is BinaryExpression) {
-      var left = visitExpression(node.left, scope);
-      var right = visitExpression(node.right, scope);
+      var left = visitExpression(node.left, ctx);
+      var right = visitExpression(node.right, ctx);
       return performBinaryOperation(node.operator, left, right);
     }
 
@@ -319,7 +329,7 @@ class Samurai {
       if (l is NameExpression) {
         if (node.operator == '=') {
           return scope
-              .assign(l.name.value, visitExpression(node.right, scope))
+              .assign(l.name.value, visitExpression(node.right, ctx))
               .value;
         } else {
           var trimmedOp = node.operator.substring(0, node.operator.length - 1);
@@ -328,18 +338,18 @@ class Samurai {
                 l.name.value,
                 performNumericalBinaryOperation(
                   trimmedOp,
-                  visitExpression(l, scope),
-                  visitExpression(node.right, scope),
+                  visitExpression(l, ctx),
+                  visitExpression(node.right, ctx),
                 ),
               )
               .value;
         }
       } else if (l is MemberExpression) {
-        var left = visitExpression(l.object, scope);
+        var left = visitExpression(l.object, ctx);
 
         if (node.operator == '=') {
           return left.setProperty(
-              l.property.value, visitExpression(node.right, scope));
+              l.property.value, visitExpression(node.right, ctx));
         } else {
           var trimmedOp = node.operator.substring(0, node.operator.length - 1);
           return left.setProperty(
@@ -347,7 +357,7 @@ class Samurai {
             performNumericalBinaryOperation(
               trimmedOp,
               left.getProperty(l.property.value),
-              visitExpression(node.right, scope),
+              visitExpression(node.right, ctx),
             ),
           );
         }
@@ -358,7 +368,7 @@ class Samurai {
     }
 
     if (node is SequenceExpression) {
-      return node.expressions.map((e) => visitExpression(e, scope)).last;
+      return node.expressions.map((e) => visitExpression(e, ctx)).last;
     }
 
     throw callStack.error('Unsupported', node.runtimeType.toString());
@@ -433,15 +443,15 @@ class Samurai {
     }
   }
 
-  JsObject visitFunctionNode(FunctionNode node, SymbolTable<JsObject> scope) {
+  JsObject visitFunctionNode(FunctionNode node, SamuraiContext ctx) {
     JsFunction function;
-    function = new JsFunction(scope.context, (samurai, arguments, scope) {
+    function = new JsFunction(ctx.scope.context, (samurai, arguments, ctx) {
       for (double i = 0.0; i < node.params.length; i++) {
-        scope.create(node.params[i.toInt()].value,
+        ctx.scope.create(node.params[i.toInt()].value,
             value: arguments.properties[i]);
       }
 
-      return visitStatement(node.body, scope, function.name);
+      return visitStatement(node.body, ctx, function.name);
     });
     function.declaration = node;
     function.properties['length'] = new JsNumber(node.params.length);
@@ -449,10 +459,11 @@ class Samurai {
 
     // TODO: What about hoisting???
     if (node.name != null) {
-      scope.create(node.name.value, value: function, constant: true);
+      ctx.scope.create(node.name.value, value: function, constant: true);
     }
 
-    function.closureScope = scope.fork();
+    function.closureScope = ctx.scope.fork();
+    function.closureScope.context = ctx.scope.context;
     return function;
   }
 }

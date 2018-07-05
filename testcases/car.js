@@ -5,11 +5,13 @@ function Car(make, model, year) {
 }
 
 Car.prototype.info = function() {
-  return 'Hey!';
+  return 'You are driving a ' + this.year + ' ' + this.make + ' ' + this.model + '.';
 };
 
 var car1 = new Car('Eagle', 'Talon TSi', 1993);
 
 console.log(car1.make);
-//console.log(car1.info());
 // expected output: "Eagle"
+
+console.log(car1.info());
+// expected output: "You are driving a 1993 Eagle Talon TSi."

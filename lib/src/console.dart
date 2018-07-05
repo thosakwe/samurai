@@ -1,20 +1,19 @@
-import 'dart:collection';
 import 'package:logging/logging.dart';
 import 'package:symbol_table/symbol_table.dart';
 import 'arguments.dart';
+import 'context.dart';
 import 'function.dart';
 import 'object.dart';
 import 'samurai.dart';
 
 class JsConsole extends JsObject {
   final Map<String, int> _counts = {};
-  final Queue<Logger> _loggers = new Queue<Logger>();
   final Map<String, Stopwatch> _time = <String, Stopwatch>{};
   Logger _logger;
 
   JsConsole(this._logger) {
     _func(String name,
-        JsObject Function(Samurai, JsArguments, SymbolTable<JsObject>) f) {
+        JsObject Function(Samurai, JsArguments, SamuraiContext) f) {
       properties[name] = new JsFunction(this, f)..name = name;
     }
 
@@ -36,8 +35,7 @@ class JsConsole extends JsObject {
     _func('warn', warn);
   }
 
-  JsObject assert_(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject assert_(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     var condition = arguments.getProperty(0.0);
 
     if (condition?.isTruthy == true) {
@@ -47,17 +45,15 @@ class JsConsole extends JsObject {
     return null;
   }
 
-  JsObject Function(Samurai, JsArguments, SymbolTable<JsObject>) _fake(
+  JsObject Function(Samurai, JsArguments, SamuraiContext ctx) _fake(
       String name) {
-    return (Samurai samurai, JsArguments arguments,
-        SymbolTable<JsObject> scope) {
+    return (Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
       _logger.fine('`console.$name` was called.');
       return null;
     };
   }
 
-  JsObject count(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject count(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     var label = arguments.getProperty(0.0)?.toString() ?? '<no label>';
     _counts.putIfAbsent(label, () => 1);
     var v = _counts[label]++;
@@ -66,8 +62,7 @@ class JsConsole extends JsObject {
     return null;
   }
 
-  JsObject dir(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject dir(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     var obj = arguments.getProperty(0.0);
 
     if (obj != null) {
@@ -77,8 +72,7 @@ class JsConsole extends JsObject {
     return null;
   }
 
-  JsObject dirxml(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject dirxml(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     var obj = arguments.getProperty(0.0);
 
     if (obj != null) {
@@ -88,33 +82,28 @@ class JsConsole extends JsObject {
     return null;
   }
 
-  JsObject error(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject error(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     _logger.severe(arguments.valueOf.join(' '));
     return null;
   }
 
-  JsObject info(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject info(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     _logger.info(arguments.valueOf.join(' '));
     return null;
   }
 
-  JsObject warn(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject warn(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     _logger.warning(arguments.valueOf.join(' '));
     return null;
   }
 
-  JsObject table(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject table(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     // TODO: Is there a need to actually make this a table?
     _logger.info(arguments.valueOf.join(' '));
     return null;
   }
 
-  JsObject time(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject time(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     var label = arguments.getProperty(0.0)?.toString();
 
     if (label != null) {
@@ -123,8 +112,7 @@ class JsConsole extends JsObject {
     return null;
   }
 
-  JsObject timeEnd(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
+  JsObject timeEnd(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
     var label = arguments.getProperty(0.0)?.toString();
 
     if (label != null) {
@@ -139,9 +127,8 @@ class JsConsole extends JsObject {
     return null;
   }
 
-  JsObject trace(
-      Samurai samurai, JsArguments arguments, SymbolTable<JsObject> scope) {
-    for (var frame in samurai.callStack.frames) {
+  JsObject trace(Samurai samurai, JsArguments arguments, SamuraiContext ctx) {
+    for (var frame in ctx.callStack.frames) {
       _logger.info(frame);
     }
 

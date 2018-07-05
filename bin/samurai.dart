@@ -42,8 +42,6 @@ main(List<String> args) async {
         print(red.wrap('SyntaxError: ${e.message}'));
       } catch (e) {
         print(red.wrap(e.toString()));
-      } finally {
-        samurai.callStack.clear();
       }
     }
   }
