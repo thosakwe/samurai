@@ -3,12 +3,14 @@ import 'dart:collection';
 class CallStack {
   final Queue<Frame> _frames = new Queue<Frame>();
 
+  void clear() => _frames.clear();
+
   void push(String filename, int line, String name) {
     _frames.addFirst(new Frame(filename, line, name));
   }
 
   void pop() {
-    _frames.removeFirst();
+    if (_frames.isNotEmpty) _frames.removeFirst();
   }
 
   SamuraiException error(String type, String message) {

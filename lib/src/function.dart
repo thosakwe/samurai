@@ -18,13 +18,21 @@ class JsFunction extends JsObject {
     properties['prototype'] = new JsObject();
   }
 
+  bool get isAnonymous {
+    return properties['name'] == null ||
+        properties['name'].toString() == 'anonymous';
+  }
+
   String get name {
-    if (properties['name'] == null || properties['name'].toString() == 'anonymous') {
+    if (isAnonymous) {
       return '(anonymous function)';
     } else {
       return properties['name'].toString();
     }
   }
 
-// TODO: toString()
+  @override
+  String toString() {
+    return isAnonymous ? '[Function]' : '[Function: $name]';
+  }
 }

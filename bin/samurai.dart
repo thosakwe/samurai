@@ -21,20 +21,26 @@ main(List<String> args) async {
     for (var line in repl.run()) {
       try {
         var node = parsejs(line);
-        var result = samurai.visitProgram(node)?.valueOf;
+        var result = samurai.visitProgram(node);
         handleResult(result);
       } on ParseError catch (e) {
         print(red.wrap('SyntaxError: ${e.message}'));
       } catch (e, st) {
         print(red.wrap(e.toString()));
         print(red.wrap(st.toString()));
+      } finally {
+        samurai.callStack.clear();
       }
     }
   }
 }
 
-void handleResult(result) {
-  if (result == null) {
+void handleResult(JsObject obj) {
+  var result = obj?.valueOf;
+
+  if (obj is JsFunction) {
+    print(cyan.wrap(obj.toString()));
+  } else if (result == null) {
     print(darkGray.wrap('undefined'));
   } else if (result is String) {
     var value = "'${result.replaceAll("'", "\\'").replaceAll('\b', '\\b')
@@ -45,7 +51,7 @@ void handleResult(result) {
   } else if (result is bool) {
     print(yellow.wrap(result.toString()));
   } else if (result is num) {
-    if (result.isNaN) {
+    if (result is num && result.isNaN) {
       print(yellow.wrap('NaN'));
     } else {
       var value = result == result.toInt() ? result.toInt() : result;

@@ -79,8 +79,19 @@ class Samurai {
 
     if (node is VariableDeclaration) {
       for (var decl in node.declarations) {
-        // TODO: What if it already exists?
-        scope.create(decl.name.value, value: visitExpression(decl.init, scope));
+        Variable<JsObject> symbol;
+        var value = visitExpression(decl.init, scope);
+
+        try {
+          symbol = scope.create(
+              decl.name.value, value: value);
+        } on StateError {
+          symbol = scope.assign(decl.name.value, value);
+        }
+
+        if (value is JsFunction && value.isAnonymous && symbol != null) {
+          value.properties['name'] = new JsString(symbol.name);
+        }
       }
 
       return null;
