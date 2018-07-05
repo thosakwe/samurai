@@ -23,12 +23,16 @@ class JsObject {
 //    }
   }
 
-  JsObject newInstance() {
-    // TODO: Bind functions?
-    var obj = new JsObject();
+  Map<dynamic, JsObject> get prototype {
+    return properties['prototype']?.properties ?? <dynamic, JsObject>{};
+  }
 
-    for (var key in properties.keys) {
-      var value = properties[key];
+  JsObject newInstance() {
+    var obj = new JsObject();
+    var p = prototype;
+
+    for (var key in p.keys) {
+      var value = p[key];
 
       if (value is JsFunction) {
         obj.properties[key] = value.bind(obj);
